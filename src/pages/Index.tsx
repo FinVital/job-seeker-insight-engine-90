@@ -26,6 +26,13 @@ const Index = () => {
   const [subscription, setSubscription] = useState<any>(null);
   const [showPlans, setShowPlans] = useState(false);
 
+  // Clear analysis when job URL or resume file changes
+  useEffect(() => {
+    if (jobUrl || resumeFile) {
+      setAnalysis("");
+    }
+  }, [jobUrl, resumeFile]);
+
   useEffect(() => {
     if (!supabase) return;
     
@@ -97,10 +104,16 @@ const Index = () => {
     const file = event.target.files?.[0];
     if (file && file.type === "application/pdf") {
       setResumeFile(file);
+      setAnalysis(""); // Clear previous analysis
       toast.success("Resume uploaded successfully!");
     } else {
       toast.error("Please upload a PDF file");
     }
+  };
+
+  const handleJobUrlChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setJobUrl(e.target.value);
+    setAnalysis(""); // Clear previous analysis when URL changes
   };
 
   const analyzeResume = async () => {
@@ -379,7 +392,7 @@ Strong technical foundation and relevant experience, but missing some specific k
                   type="url"
                   placeholder="https://company.com/jobs/senior-developer"
                   value={jobUrl}
-                  onChange={(e) => setJobUrl(e.target.value)}
+                  onChange={handleJobUrlChange}
                   className="mt-2"
                 />
               </CardContent>
