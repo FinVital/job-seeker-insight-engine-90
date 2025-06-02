@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -249,39 +248,14 @@ Strong technical foundation and relevant experience, but missing some specific k
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
       <div className="container mx-auto px-4 py-8">
-        {/* Header with Auth */}
+        {/* Header with Logo */}
         <div className="text-center mb-12">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center">
-              <img 
-                src="/lovable-uploads/a990a600-c496-4d20-8aba-20c9a97465b1.png" 
-                alt="Resume ScoreX" 
-                className="h-12 mr-3"
-              />
-            </div>
-            <div className="flex items-center gap-4">
-              {user ? (
-                <div className="flex items-center gap-4">
-                  <span className="text-sm text-gray-600">
-                    {subscription?.subscribed ? (
-                      <span className="flex items-center gap-1 text-green-600">
-                        <Crown className="h-4 w-4" />
-                        {subscription.subscription_tier} Plan
-                      </span>
-                    ) : (
-                      'Free User'
-                    )}
-                  </span>
-                  <Button onClick={handleSignOut} variant="outline">
-                    Sign Out
-                  </Button>
-                </div>
-              ) : (
-                <Button onClick={handleSignIn} disabled={!supabase}>
-                  {supabase ? 'Sign In' : 'Sign In (Supabase Required)'}
-                </Button>
-              )}
-            </div>
+          <div className="flex items-center justify-center mb-6">
+            <img 
+              src="/lovable-uploads/a990a600-c496-4d20-8aba-20c9a97465b1.png" 
+              alt="Resume ScoreX" 
+              className="h-24 w-auto"
+            />
           </div>
           <p className="text-xl text-gray-600 max-w-2xl mx-auto">
             Analyze resumes against job descriptions with AI-powered insights and scoring
