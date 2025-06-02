@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -252,8 +253,11 @@ Strong technical foundation and relevant experience, but missing some specific k
         <div className="text-center mb-12">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center">
-              <Brain className="h-12 w-12 text-blue-600 mr-3" />
-              <h1 className="text-4xl font-bold text-gray-900">AI Recruitment Assistant</h1>
+              <img 
+                src="/lovable-uploads/a990a600-c496-4d20-8aba-20c9a97465b1.png" 
+                alt="Resume ScoreX" 
+                className="h-12 mr-3"
+              />
             </div>
             <div className="flex items-center gap-4">
               {user ? (
