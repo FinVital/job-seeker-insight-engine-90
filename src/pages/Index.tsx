@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -65,18 +64,13 @@ const Index = () => {
   };
 
   const handleSignIn = async () => {
-    if (!supabase) {
-      toast.error('Supabase not configured');
-      return;
-    }
-    
-    try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-      });
-      if (error) throw error;
-    } catch (error) {
-      toast.error('Sign in failed');
+    // Redirect to Stripe payment page for the most popular plan
+    const popularPlan = subscriptionPlans.find(plan => plan.popular);
+    if (popularPlan) {
+      handleSubscribe(popularPlan.priceId);
+    } else {
+      // Fallback to first plan if no popular plan found
+      handleSubscribe(subscriptionPlans[0].priceId);
     }
   };
 
@@ -93,27 +87,10 @@ const Index = () => {
   };
 
   const handleSubscribe = async (priceId: string) => {
-    if (!user) {
-      toast.error('Please sign in first');
-      return;
-    }
-
-    if (!supabase) {
-      toast.error('Supabase not configured');
-      return;
-    }
-
-    try {
-      const { data } = await supabase.functions.invoke('create-checkout', {
-        body: { priceId }
-      });
-      
-      if (data?.url) {
-        window.open(data.url, '_blank');
-      }
-    } catch (error) {
-      toast.error('Subscription failed');
-    }
+    // Simulate Stripe checkout redirect
+    const stripeCheckoutUrl = `https://checkout.stripe.com/pay/${priceId}`;
+    window.open(stripeCheckoutUrl, '_blank');
+    toast.success("Redirecting to Stripe payment page...");
   };
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -266,7 +243,11 @@ Strong technical foundation and relevant experience, but missing some specific k
               onClick={() => setShowPlans(!showPlans)} 
               className="mt-4 bg-gradient-to-r from-blue-600 to-purple-600"
             >
-              <Crown className="h-4 w-4 mr-2" />
+              <img 
+                src="/lovable-uploads/a990a600-c496-4d20-8aba-20c9a97465b1.png" 
+                alt="Resume ScoreX" 
+                className="h-4 w-4 mr-2"
+              />
               View Subscription Plans
             </Button>
           )}
@@ -306,9 +287,8 @@ Strong technical foundation and relevant experience, but missing some specific k
                       onClick={() => handleSubscribe(plan.priceId)}
                       className="w-full"
                       variant={plan.popular ? "default" : "outline"}
-                      disabled={!user}
                     >
-                      {!user ? 'Sign In to Subscribe' : 'Subscribe Now'}
+                      Sign In to Subscribe
                     </Button>
                   </CardContent>
                 </Card>
