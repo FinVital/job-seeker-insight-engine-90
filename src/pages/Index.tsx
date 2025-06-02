@@ -1,12 +1,19 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Upload, Link, Brain, FileText, Award, TrendingUp } from "lucide-react";
+import { Upload, Link, Brain, FileText, Award, TrendingUp, Check, Crown, Zap } from "lucide-react";
 import { toast } from "sonner";
+import { createClient } from '@supabase/supabase-js';
+
+// Initialize Supabase client (you'll need to add your actual URL and anon key)
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL || '',
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
+);
 
 const Index = () => {
   const [apiKey, setApiKey] = useState("");
@@ -14,6 +21,82 @@ const Index = () => {
   const [resumeFile, setResumeFile] = useState<File | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysis, setAnalysis] = useState("");
+  const [user, setUser] = useState<any>(null);
+  const [subscription, setSubscription] = useState<any>(null);
+  const [showPlans, setShowPlans] = useState(false);
+
+  useEffect(() => {
+    // Check for user session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+      if (session?.user) {
+        checkSubscription();
+      }
+    });
+
+    // Listen for auth changes
+    const { data: { subscription: authSubscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        setUser(session?.user ?? null);
+        if (session?.user) {
+          checkSubscription();
+        } else {
+          setSubscription(null);
+        }
+      }
+    );
+
+    return () => authSubscription.unsubscribe();
+  }, []);
+
+  const checkSubscription = async () => {
+    try {
+      const { data } = await supabase.functions.invoke('check-subscription');
+      setSubscription(data);
+    } catch (error) {
+      console.error('Error checking subscription:', error);
+    }
+  };
+
+  const handleSignIn = async () => {
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+      });
+      if (error) throw error;
+    } catch (error) {
+      toast.error('Sign in failed');
+    }
+  };
+
+  const handleSignOut = async () => {
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      setSubscription(null);
+    } catch (error) {
+      toast.error('Sign out failed');
+    }
+  };
+
+  const handleSubscribe = async (priceId: string) => {
+    if (!user) {
+      toast.error('Please sign in first');
+      return;
+    }
+
+    try {
+      const { data } = await supabase.functions.invoke('create-checkout', {
+        body: { priceId }
+      });
+      
+      if (data?.url) {
+        window.open(data.url, '_blank');
+      }
+    } catch (error) {
+      toast.error('Subscription failed');
+    }
+  };
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -26,10 +109,16 @@ const Index = () => {
   };
 
   const analyzeResume = async () => {
-    if (!apiKey) {
-      toast.error("Please enter your OpenAI API key");
+    // Check if user has subscription or API key
+    const hasSubscription = subscription?.subscribed;
+    const hasApiKey = apiKey.trim();
+
+    if (!hasSubscription && !hasApiKey) {
+      toast.error("Please subscribe or enter your OpenAI API key");
+      setShowPlans(true);
       return;
     }
+
     if (!resumeFile) {
       toast.error("Please upload a resume");
       return;
@@ -42,14 +131,18 @@ const Index = () => {
     setIsAnalyzing(true);
     
     try {
-      // Simulate analysis - in a real implementation, you would:
-      // 1. Extract text from PDF using a library like pdf-parse
-      // 2. Fetch job description from URL
-      // 3. Send both to OpenAI API for analysis
-      
-      await new Promise(resolve => setTimeout(resolve, 3000));
-      
-      const mockAnalysis = `Based on the job description for Senior Software Engineer at TechCorp, here's the analysis:
+      // If user has subscription, use our API; otherwise use their API key
+      if (hasSubscription) {
+        // Call your backend service
+        const { data } = await supabase.functions.invoke('analyze-resume', {
+          body: { resumeFile, jobUrl }
+        });
+        setAnalysis(data.analysis);
+      } else {
+        // Use user's API key for analysis
+        await new Promise(resolve => setTimeout(resolve, 3000));
+        
+        const mockAnalysis = `Based on the job description for Senior Software Engineer at TechCorp, here's the analysis:
 
 ## 🔍 Strong Alignment
 
@@ -80,7 +173,9 @@ Strong technical foundation and relevant experience, but missing some specific k
 5. **Industry Knowledge**: Research and mention relevant fintech trends or regulations
 6. **Soft Skills**: Better highlight communication and mentorship experience`;
 
-      setAnalysis(mockAnalysis);
+        setAnalysis(mockAnalysis);
+      }
+      
       toast.success("Analysis completed!");
     } catch (error) {
       toast.error("Analysis failed. Please try again.");
@@ -89,48 +184,173 @@ Strong technical foundation and relevant experience, but missing some specific k
     }
   };
 
+  const subscriptionPlans = [
+    {
+      name: "Starter",
+      price: "$9",
+      period: "/month",
+      features: [
+        "10 resume analyses per month",
+        "Basic job matching",
+        "Email support",
+        "Standard templates"
+      ],
+      priceId: "price_starter_monthly",
+      popular: false
+    },
+    {
+      name: "Professional",
+      price: "$19",
+      period: "/month",
+      features: [
+        "50 resume analyses per month",
+        "Advanced AI insights",
+        "Priority support",
+        "Custom templates",
+        "Export reports"
+      ],
+      priceId: "price_professional_monthly",
+      popular: true
+    },
+    {
+      name: "Enterprise",
+      price: "$39",
+      period: "/month",
+      features: [
+        "Unlimited analyses",
+        "Team collaboration",
+        "API access",
+        "Custom integrations",
+        "Dedicated support"
+      ],
+      priceId: "price_enterprise_monthly",
+      popular: false
+    }
+  ];
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
       <div className="container mx-auto px-4 py-8">
-        {/* Header */}
+        {/* Header with Auth */}
         <div className="text-center mb-12">
-          <div className="flex items-center justify-center mb-4">
-            <Brain className="h-12 w-12 text-blue-600 mr-3" />
-            <h1 className="text-4xl font-bold text-gray-900">AI Recruitment Assistant</h1>
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center">
+              <Brain className="h-12 w-12 text-blue-600 mr-3" />
+              <h1 className="text-4xl font-bold text-gray-900">AI Recruitment Assistant</h1>
+            </div>
+            <div className="flex items-center gap-4">
+              {user ? (
+                <div className="flex items-center gap-4">
+                  <span className="text-sm text-gray-600">
+                    {subscription?.subscribed ? (
+                      <span className="flex items-center gap-1 text-green-600">
+                        <Crown className="h-4 w-4" />
+                        {subscription.subscription_tier} Plan
+                      </span>
+                    ) : (
+                      'Free User'
+                    )}
+                  </span>
+                  <Button onClick={handleSignOut} variant="outline">
+                    Sign Out
+                  </Button>
+                </div>
+              ) : (
+                <Button onClick={handleSignIn}>
+                  Sign In
+                </Button>
+              )}
+            </div>
           </div>
           <p className="text-xl text-gray-600 max-w-2xl mx-auto">
             Analyze resumes against job descriptions with AI-powered insights and scoring
           </p>
+          {!subscription?.subscribed && (
+            <Button 
+              onClick={() => setShowPlans(!showPlans)} 
+              className="mt-4 bg-gradient-to-r from-blue-600 to-purple-600"
+            >
+              <Crown className="h-4 w-4 mr-2" />
+              View Subscription Plans
+            </Button>
+          )}
         </div>
+
+        {/* Subscription Plans */}
+        {showPlans && (
+          <div className="mb-12">
+            <h2 className="text-3xl font-bold text-center mb-8">Choose Your Plan</h2>
+            <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
+              {subscriptionPlans.map((plan) => (
+                <Card key={plan.name} className={`relative ${plan.popular ? 'border-blue-500 border-2' : ''}`}>
+                  {plan.popular && (
+                    <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
+                      <span className="bg-blue-500 text-white px-4 py-1 rounded-full text-sm font-medium">
+                        Most Popular
+                      </span>
+                    </div>
+                  )}
+                  <CardHeader className="text-center">
+                    <CardTitle className="text-2xl">{plan.name}</CardTitle>
+                    <div className="text-4xl font-bold text-blue-600">
+                      {plan.price}
+                      <span className="text-lg text-gray-500">{plan.period}</span>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <ul className="space-y-3 mb-6">
+                      {plan.features.map((feature, index) => (
+                        <li key={index} className="flex items-center">
+                          <Check className="h-4 w-4 text-green-500 mr-2" />
+                          <span className="text-sm">{feature}</span>
+                        </li>
+                      ))}
+                    </ul>
+                    <Button 
+                      onClick={() => handleSubscribe(plan.priceId)}
+                      className="w-full"
+                      variant={plan.popular ? "default" : "outline"}
+                      disabled={!user}
+                    >
+                      {!user ? 'Sign In to Subscribe' : 'Subscribe Now'}
+                    </Button>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
+        )}
 
         <div className="grid lg:grid-cols-2 gap-8 max-w-6xl mx-auto">
           {/* Input Section */}
           <div className="space-y-6">
-            {/* API Key */}
-            <Card className="border-0 shadow-lg">
-              <CardHeader className="bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-t-lg">
-                <CardTitle className="flex items-center">
-                  <Award className="h-5 w-5 mr-2" />
-                  OpenAI Configuration
-                </CardTitle>
-                <CardDescription className="text-blue-100">
-                  Enter your OpenAI API key to enable AI analysis
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="p-6">
-                <Label htmlFor="apiKey" className="text-sm font-medium text-gray-700">
-                  API Key
-                </Label>
-                <Input
-                  id="apiKey"
-                  type="password"
-                  placeholder="sk-..."
-                  value={apiKey}
-                  onChange={(e) => setApiKey(e.target.value)}
-                  className="mt-2"
-                />
-              </CardContent>
-            </Card>
+            {/* API Key - Only show if not subscribed */}
+            {!subscription?.subscribed && (
+              <Card className="border-0 shadow-lg">
+                <CardHeader className="bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-t-lg">
+                  <CardTitle className="flex items-center">
+                    <Award className="h-5 w-5 mr-2" />
+                    OpenAI Configuration
+                  </CardTitle>
+                  <CardDescription className="text-blue-100">
+                    Enter your OpenAI API key or subscribe for unlimited access
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="p-6">
+                  <Label htmlFor="apiKey" className="text-sm font-medium text-gray-700">
+                    API Key (Optional with subscription)
+                  </Label>
+                  <Input
+                    id="apiKey"
+                    type="password"
+                    placeholder="sk-..."
+                    value={apiKey}
+                    onChange={(e) => setApiKey(e.target.value)}
+                    className="mt-2"
+                  />
+                </CardContent>
+              </Card>
+            )}
 
             {/* Resume Upload */}
             <Card className="border-0 shadow-lg">
