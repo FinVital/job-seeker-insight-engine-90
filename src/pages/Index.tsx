@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,11 +8,13 @@ import { Upload, Link, Brain, FileText, Award, TrendingUp, Check, Crown, Zap } f
 import { toast } from "sonner";
 import { createClient } from '@supabase/supabase-js';
 
-// Initialize Supabase client with Vite environment variables
-const supabase = createClient(
-  import.meta.env.VITE_SUPABASE_URL || '',
-  import.meta.env.VITE_SUPABASE_ANON_KEY || ''
-);
+// Initialize Supabase client only if environment variables are available
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+const supabase = supabaseUrl && supabaseAnonKey 
+  ? createClient(supabaseUrl, supabaseAnonKey)
+  : null;
 
 const Index = () => {
   const [apiKey, setApiKey] = useState("");
@@ -26,6 +27,8 @@ const Index = () => {
   const [showPlans, setShowPlans] = useState(false);
 
   useEffect(() => {
+    if (!supabase) return;
+    
     // Check for user session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
@@ -50,6 +53,8 @@ const Index = () => {
   }, []);
 
   const checkSubscription = async () => {
+    if (!supabase) return;
+    
     try {
       const { data } = await supabase.functions.invoke('check-subscription');
       setSubscription(data);
@@ -59,6 +64,11 @@ const Index = () => {
   };
 
   const handleSignIn = async () => {
+    if (!supabase) {
+      toast.error('Supabase not configured');
+      return;
+    }
+    
     try {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
@@ -70,6 +80,8 @@ const Index = () => {
   };
 
   const handleSignOut = async () => {
+    if (!supabase) return;
+    
     try {
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
@@ -82,6 +94,11 @@ const Index = () => {
   const handleSubscribe = async (priceId: string) => {
     if (!user) {
       toast.error('Please sign in first');
+      return;
+    }
+
+    if (!supabase) {
+      toast.error('Supabase not configured');
       return;
     }
 
@@ -131,15 +148,15 @@ const Index = () => {
     setIsAnalyzing(true);
     
     try {
-      // If user has subscription, use our API; otherwise use their API key
-      if (hasSubscription) {
+      // If user has subscription and supabase is configured, use our API; otherwise use their API key
+      if (hasSubscription && supabase) {
         // Call your backend service
         const { data } = await supabase.functions.invoke('analyze-resume', {
           body: { resumeFile, jobUrl }
         });
         setAnalysis(data.analysis);
       } else {
-        // Use user's API key for analysis
+        // Use user's API key for analysis (mock for now)
         await new Promise(resolve => setTimeout(resolve, 3000));
         
         const mockAnalysis = `Based on the job description for Senior Software Engineer at TechCorp, here's the analysis:
@@ -256,8 +273,8 @@ Strong technical foundation and relevant experience, but missing some specific k
                   </Button>
                 </div>
               ) : (
-                <Button onClick={handleSignIn}>
-                  Sign In
+                <Button onClick={handleSignIn} disabled={!supabase}>
+                  {supabase ? 'Sign In' : 'Sign In (Supabase Required)'}
                 </Button>
               )}
             </div>
@@ -338,7 +355,7 @@ Strong technical foundation and relevant experience, but missing some specific k
                 </CardHeader>
                 <CardContent className="p-6">
                   <Label htmlFor="apiKey" className="text-sm font-medium text-gray-700">
-                    API Key (Optional with subscription)
+                    API Key (Required without subscription)
                   </Label>
                   <Input
                     id="apiKey"
