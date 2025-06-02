@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -254,7 +255,7 @@ Strong technical foundation and relevant experience, but missing some specific k
             <img 
               src="/lovable-uploads/a990a600-c496-4d20-8aba-20c9a97465b1.png" 
               alt="Resume ScoreX" 
-              className="h-24 w-auto"
+              className="h-32 w-auto"
             />
           </div>
           <p className="text-xl text-gray-600 max-w-2xl mx-auto">
