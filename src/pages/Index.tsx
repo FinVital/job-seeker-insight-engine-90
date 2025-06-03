@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Upload, Link, Brain, FileText, Award, TrendingUp, Check, Crown, Zap } from "lucide-react";
 import { toast } from "sonner";
 import { createClient } from '@supabase/supabase-js';
+import { fetchJobDescription, analyzeResumeAgainstJob } from '@/utils/jobAnalyzer';
 
 // Initialize Supabase client only if environment variables are available
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
@@ -139,54 +140,34 @@ const Index = () => {
     setIsAnalyzing(true);
     
     try {
-      // If user has subscription and supabase is configured, use our API; otherwise use their API key
+      // Fetch and analyze the job description
+      toast.info("Fetching job description...");
+      const jobDescription = await fetchJobDescription(jobUrl);
+      
+      toast.info("Analyzing resume against job requirements...");
+      
       if (hasSubscription && supabase) {
-        // Call your backend service
+        // Call your backend service with real job description
         const { data } = await supabase.functions.invoke('analyze-resume', {
-          body: { resumeFile, jobUrl }
+          body: { 
+            resumeFile: resumeFile.name, 
+            jobUrl,
+            jobDescription 
+          }
         });
         setAnalysis(data.analysis);
       } else {
-        // Use user's API key for analysis (mock for now)
-        await new Promise(resolve => setTimeout(resolve, 3000));
+        // Use the job analyzer utility for analysis
+        await new Promise(resolve => setTimeout(resolve, 2000)); // Simulate processing time
         
-        const mockAnalysis = `Based on the job description for Senior Software Engineer at TechCorp, here's the analysis:
-
-## 🔍 Strong Alignment
-
-- **Programming Languages**: Strong proficiency in JavaScript, Python, and React aligns perfectly with the required tech stack
-- **Experience Level**: 5+ years of software development experience meets the senior-level requirement
-- **Cloud Technologies**: AWS experience matches the company's infrastructure needs
-- **Team Leadership**: Previous experience leading development teams aligns with the mentorship responsibilities
-
-## ⚠️ Areas for Improvement
-
-- **Missing Keywords**: Resume lacks specific mention of "microservices architecture" and "Docker containers"
-- **Industry Experience**: No direct fintech experience, while the role is in financial technology
-- **Certifications**: Missing AWS certifications that would strengthen cloud expertise claims
-- **Project Scale**: Limited information about handling high-traffic applications (mentioned in JD)
-
-## 📊 Resume Match Score
-
-**Score: 78/100**
-
-Strong technical foundation and relevant experience, but missing some specific keywords and industry background that would make this an ideal match.
-
-## ✅ Recommendations
-
-1. **Add Technical Keywords**: Include "microservices," "Docker," "Kubernetes," and "CI/CD pipelines"
-2. **Quantify Achievements**: Add specific metrics about application performance and user scale
-3. **Highlight Relevant Projects**: Emphasize any projects involving payment systems or financial data
-4. **Consider Certifications**: Pursue AWS Solutions Architect certification
-5. **Industry Knowledge**: Research and mention relevant fintech trends or regulations
-6. **Soft Skills**: Better highlight communication and mentorship experience`;
-
-        setAnalysis(mockAnalysis);
+        const analysisResult = analyzeResumeAgainstJob(jobDescription, resumeFile.name);
+        setAnalysis(analysisResult);
       }
       
       toast.success("Analysis completed!");
     } catch (error) {
-      toast.error("Analysis failed. Please try again.");
+      console.error('Analysis error:', error);
+      toast.error("Failed to fetch job description or analyze resume. Please check the URL and try again.");
     } finally {
       setIsAnalyzing(false);
     }
