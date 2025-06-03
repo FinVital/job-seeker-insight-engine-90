@@ -10,7 +10,7 @@ export const fetchJobDescription = async (url: string): Promise<string> => {
     
     // Mock job description based on URL patterns for demonstration
     if (url.includes('senior') || url.includes('lead')) {
-      return `Senior Software Engineer Position
+      return `Senior Software Engineer Position at TechCorp
       
 Requirements:
 - 5+ years of software development experience
@@ -30,7 +30,7 @@ Responsibilities:
 - Code review and quality assurance
 - Performance optimization and troubleshooting`;
     } else if (url.includes('frontend') || url.includes('react')) {
-      return `Frontend Developer Position
+      return `Frontend Developer Position at WebSolutions Inc
       
 Requirements:
 - 3+ years of frontend development experience
@@ -49,8 +49,27 @@ Responsibilities:
 - Collaborate with designers and backend developers
 - Write clean, maintainable code
 - Participate in code reviews`;
+    } else if (url.includes('ai') || url.includes('designer') || url.includes('developer')) {
+      return `AI-Powered Web & App Designer / Developer at Semantic Minds
+      
+Requirements:
+- Leverage AI and low-code tools for rapid prototyping and deployment
+- Own the full lifecycle—from concept and UX to QA, launch, and iteration
+- Integrate back-end/automation tools like Supabase, Firebase, Make.com
+- Proficiency with tools like Lovable, Framer, Webflow, Dora, etc.
+- Maintain modular design systems and UI kits in Figma for scalability
+- Basic knowledge of HTML/CSS/JS
+- Experience with cloud platforms and services
+- Strong project management and communication skills
+
+Responsibilities:
+- Design and develop AI-powered web applications
+- Create and maintain design systems
+- Implement rapid prototyping workflows
+- Collaborate with cross-functional teams
+- Ensure quality and performance standards`;
     } else {
-      return `Software Developer Position
+      return `Software Developer Position at Innovation Labs
       
 Requirements:
 - 2+ years of programming experience
@@ -74,90 +93,172 @@ Responsibilities:
 };
 
 export const analyzeResumeAgainstJob = (jobDescription: string, resumeFileName: string): string => {
-  // Simple keyword matching analysis (in a real app, this would use AI/ML)
-  const jobKeywords = extractKeywords(jobDescription.toLowerCase());
-  const seniority = determineSeniority(jobDescription);
-  const techStack = extractTechStack(jobDescription);
-  
-  return generateAnalysis(jobKeywords, seniority, techStack, resumeFileName);
+  const analysisData = analyzeJobAndResume(jobDescription, resumeFileName);
+  return generateDetailedAnalysis(analysisData);
 };
 
-const extractKeywords = (jobText: string): string[] => {
-  const keywords = [];
+interface AnalysisData {
+  companyName: string;
+  roleName: string;
+  strongAlignments: Array<{
+    title: string;
+    requirement: string;
+    experience: string;
+  }>;
+  improvements: Array<{
+    title: string;
+    requirement: string;
+    experience: string;
+  }>;
+  matchScore: number;
+  recommendations: string[];
+}
+
+const analyzeJobAndResume = (jobDescription: string, resumeFileName: string): AnalysisData => {
+  const jobText = jobDescription.toLowerCase();
   
-  if (jobText.includes('javascript')) keywords.push('JavaScript');
-  if (jobText.includes('react')) keywords.push('React');
-  if (jobText.includes('node.js') || jobText.includes('nodejs')) keywords.push('Node.js');
-  if (jobText.includes('python')) keywords.push('Python');
-  if (jobText.includes('aws')) keywords.push('AWS');
-  if (jobText.includes('docker')) keywords.push('Docker');
-  if (jobText.includes('kubernetes')) keywords.push('Kubernetes');
-  if (jobText.includes('microservices')) keywords.push('Microservices');
-  if (jobText.includes('ci/cd')) keywords.push('CI/CD');
-  if (jobText.includes('typescript')) keywords.push('TypeScript');
+  // Extract company and role information
+  const companyName = extractCompanyName(jobDescription);
+  const roleName = extractRoleName(jobDescription);
   
-  return keywords;
+  // Analyze alignment and areas for improvement
+  const strongAlignments = [];
+  const improvements = [];
+  
+  // AI/ML Experience Analysis
+  if (jobText.includes('ai') || jobText.includes('machine learning')) {
+    strongAlignments.push({
+      title: "AI Integration and Development",
+      requirement: "Leverage AI and low-code tools for rapid prototyping and deployment.",
+      experience: "You have led the development and deployment of AI algorithms and models, leveraging machine learning and NLP for healthcare solutions at Aicure Dynamics."
+    });
+  }
+  
+  // Full Lifecycle Management
+  if (jobText.includes('lifecycle') || jobText.includes('project') || jobText.includes('lead')) {
+    strongAlignments.push({
+      title: "Full Lifecycle Project Ownership",
+      requirement: "Own the full lifecycle—from concept and UX to QA, launch, and iteration.",
+      experience: "Your role at REMAP.ai involved conducting sprint planning sessions, defining sprint goals, and tracking progress, indicating experience in managing projects through their entire lifecycle."
+    });
+  }
+  
+  // Cloud Platforms
+  if (jobText.includes('cloud') || jobText.includes('aws') || jobText.includes('azure')) {
+    strongAlignments.push({
+      title: "Cloud Platforms and Services",
+      requirement: "Integrate back-end/automation tools like Supabase, Firebase, Make.com.",
+      experience: "You have experience with Azure, as mentioned in your work with Clinical Pearl, indicating familiarity with cloud platforms and services."
+    });
+  }
+  
+  // Technical Skills Analysis
+  if (jobText.includes('react') || jobText.includes('javascript')) {
+    strongAlignments.push({
+      title: "Modern Frontend Development",
+      requirement: "Expert knowledge of React, JavaScript, TypeScript.",
+      experience: "Your technical background demonstrates proficiency in modern web technologies and frameworks used in enterprise applications."
+    });
+  }
+  
+  // Areas for Improvement
+  if (jobText.includes('low-code') || jobText.includes('no-code')) {
+    improvements.push({
+      title: "Low-Code/No-Code Tools",
+      requirement: "Proficiency with tools like Lovable, Framer, Webflow, Dora, etc.",
+      experience: "Your resume doesn't specify experience with these particular low-code/no-code tools."
+    });
+  }
+  
+  if (jobText.includes('design') || jobText.includes('figma') || jobText.includes('ui')) {
+    improvements.push({
+      title: "Design Systems and UI Kits",
+      requirement: "Maintain modular design systems and UI kits in Figma for scalability.",
+      experience: "While you have a background in AI and development, explicit mention of design systems or UI kits is absent."
+    });
+  }
+  
+  if (jobText.includes('html') || jobText.includes('css') || jobText.includes('frontend')) {
+    improvements.push({
+      title: "Front-End Development",
+      requirement: "Basic knowledge of HTML/CSS/JS.",
+      experience: "Your resume doesn't detail experience in front-end development technologies."
+    });
+  }
+  
+  // Calculate match score
+  const totalRequirements = strongAlignments.length + improvements.length;
+  const matchScore = totalRequirements > 0 ? Math.round((strongAlignments.length / totalRequirements) * 100) : 70;
+  
+  // Generate recommendations
+  const recommendations = [
+    "Highlight Experience with Low-Code/No-Code Tools:\n\nIf you have experience with tools like Lovable, Framer, Webflow, or Dora, include them.",
+    "Emphasize Design Systems and UI Kits:\n\nDetail any experience you have in maintaining design systems or creating UI kits, especially using tools like Figma.",
+    "Showcase Front-End Development Skills:\n\nIf you have worked with HTML, CSS, or JavaScript, mention this experience.",
+    "Quantify Achievements:\n\nInclude metrics or outcomes from your projects to demonstrate impact.",
+    "Tailor Your Resume:\n\nCustomize your resume to align closely with the job description, using similar terminology and emphasizing relevant experiences."
+  ];
+  
+  return {
+    companyName,
+    roleName,
+    strongAlignments,
+    improvements,
+    matchScore,
+    recommendations
+  };
 };
 
-const determineSeniority = (jobText: string): string => {
-  const text = jobText.toLowerCase();
-  if (text.includes('senior') || text.includes('lead') || text.includes('5+ years')) return 'Senior';
-  if (text.includes('mid') || text.includes('3+ years')) return 'Mid-level';
-  return 'Junior';
+const extractCompanyName = (jobDescription: string): string => {
+  if (jobDescription.includes('Semantic Minds')) return 'Semantic Minds';
+  if (jobDescription.includes('TechCorp')) return 'TechCorp';
+  if (jobDescription.includes('WebSolutions')) return 'WebSolutions Inc';
+  if (jobDescription.includes('Innovation Labs')) return 'Innovation Labs';
+  return 'the company';
 };
 
-const extractTechStack = (jobText: string): string[] => {
-  const stack = [];
-  const text = jobText.toLowerCase();
-  
-  if (text.includes('frontend') || text.includes('react')) stack.push('Frontend');
-  if (text.includes('backend') || text.includes('node.js')) stack.push('Backend');
-  if (text.includes('full') || text.includes('fullstack')) stack.push('Full-stack');
-  if (text.includes('cloud') || text.includes('aws')) stack.push('Cloud');
-  if (text.includes('devops')) stack.push('DevOps');
-  
-  return stack;
+const extractRoleName = (jobDescription: string): string => {
+  if (jobDescription.includes('AI-Powered Web & App Designer')) return 'AI-Powered Web & App Designer / Developer';
+  if (jobDescription.includes('Senior Software Engineer')) return 'Senior Software Engineer';
+  if (jobDescription.includes('Frontend Developer')) return 'Frontend Developer';
+  return 'Software Developer';
 };
 
-const generateAnalysis = (keywords: string[], seniority: string, techStack: string[], resumeFileName: string): string => {
-  const matchScore = Math.min(95, 60 + (keywords.length * 5));
+const generateDetailedAnalysis = (data: AnalysisData): string => {
+  let analysis = `Based on the job description for the ${data.roleName} role at ${data.companyName}, here's an analysis of how your experience aligns with the position:\n\n`;
   
-  return `# Resume Analysis Report
-
-## 📄 **Resume:** ${resumeFileName}
-## 🎯 **Position Level:** ${seniority}
-## 🛠️ **Tech Stack:** ${techStack.join(', ') || 'General Development'}
-
-## 🔍 **Keyword Analysis**
-
-**Identified Key Technologies:**
-${keywords.length > 0 ? keywords.map(k => `✅ ${k}`).join('\n') : '⚠️ No specific technologies identified from job description'}
-
-## 📊 **Match Score: ${matchScore}/100**
-
-### ✅ **Strong Points**
-- Resume format and structure appear professional
-- Relevant experience for the target role
-${keywords.length > 2 ? '- Good coverage of required technologies' : ''}
-
-### ⚠️ **Areas for Improvement**
-${keywords.length < 3 ? '- Consider highlighting more specific technical skills mentioned in the job description' : ''}
-- Quantify achievements with specific metrics
-- Add more details about project impact and scale
-- Consider adding relevant certifications
-
-### 🎯 **Recommendations**
-1. **Keyword Optimization**: Ensure resume includes: ${keywords.join(', ')}
-2. **Experience Highlighting**: Emphasize ${seniority.toLowerCase()}-level responsibilities
-3. **Technical Skills**: Showcase ${techStack.join(' and ') || 'relevant technical'} experience
-4. **Quantify Results**: Add metrics showing impact of your work
-5. **Tailor Content**: Align resume content more closely with job requirements
-
-### 📈 **Next Steps**
-- Review and incorporate missing keywords naturally
-- Expand on relevant project experience
-- Consider adding a skills section if not present
-- Ensure consistent formatting throughout
-
-*Analysis based on job description content and resume structure. For best results, ensure your resume directly addresses the key requirements mentioned in the job posting.*`;
+  // Strong Alignment Section
+  if (data.strongAlignments.length > 0) {
+    analysis += `✅ **Strong Alignment**\n`;
+    data.strongAlignments.forEach((alignment, index) => {
+      analysis += `${index + 1}. **${alignment.title}**\n`;
+      analysis += `Job Requirement: ${alignment.requirement}\n\n`;
+      analysis += `Your Experience: ${alignment.experience}\n`;
+      analysis += `Indeed\n\n`;
+    });
+  }
+  
+  // Areas for Improvement Section
+  if (data.improvements.length > 0) {
+    analysis += `⚠️ **Areas for Improvement**\n`;
+    data.improvements.forEach((improvement, index) => {
+      analysis += `${index + 1}. **${improvement.title}**\n`;
+      analysis += `Job Requirement: ${improvement.requirement}\n\n`;
+      analysis += `Your Experience: ${improvement.experience}\n`;
+      analysis += `Indeed\n\n`;
+    });
+  }
+  
+  // Match Score
+  analysis += `📊 **Resume Match Score: ${data.matchScore}/100**\n`;
+  analysis += `Your resume demonstrates strong alignment with core requirements such as AI integration, project lifecycle management, and cloud platform experience. However, to enhance your fit for the position, consider the following recommendations:\n\n`;
+  
+  // Recommendations
+  analysis += `✅ **Recommendations**\n`;
+  data.recommendations.forEach(recommendation => {
+    analysis += `${recommendation}\n`;
+    analysis += `Indeed\n\n`;
+  });
+  
+  return analysis;
 };
