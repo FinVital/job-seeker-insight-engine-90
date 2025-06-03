@@ -165,7 +165,7 @@ const Index = () => {
         await new Promise(resolve => setTimeout(resolve, 2000)); // Simulate processing time
         
         const analysisResult = await analyzeResumeAgainstJob(jobDescription, resumeFile.name);
-        setAnalysis(await analysisResult);
+        setAnalysis(analysisResult);
       }
       
       toast.success("Analysis completed!");

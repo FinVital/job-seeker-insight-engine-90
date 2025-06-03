@@ -119,12 +119,12 @@ const analyzeWithOpenAI = async (
     });
 
     const prompt = `
-Analyze the following job description and provide a detailed resume analysis in the exact format shown below. 
+Compare the resume below with the provided job description and provide analysis in the EXACT format shown.
+
+Resume File: ${resumeFileName}
 
 Job Description:
 ${jobDescription}
-
-Resume File: ${resumeFileName}
 
 Please provide the analysis in this EXACT format:
 
@@ -175,7 +175,7 @@ Make sure to include "Indeed" after each section and recommendation as shown in 
 `;
 
     const completion = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
+      model: "gpt-4o",
       messages: [
         {
           role: "system",
@@ -186,14 +186,14 @@ Make sure to include "Indeed" after each section and recommendation as shown in 
           content: prompt
         }
       ],
-      temperature: 0.7,
+      temperature: 0.4,
       max_tokens: 2000
     });
 
     return completion.choices[0]?.message?.content || "Failed to generate analysis";
   } catch (error) {
     console.error('OpenAI analysis error:', error);
-    throw new Error('Failed to analyze with OpenAI');
+    throw new Error('Failed to analyze with OpenAI. Please check your API key and try again.');
   }
 };
 
@@ -325,7 +325,7 @@ const extractRoleName = (jobDescription: string): string => {
 };
 
 const generateDetailedAnalysis = (data: AnalysisData): string => {
-  let analysis = `Based on the job description for the ${data.roleName} role at ${data.companyName}, here's an analysis of how your experience aligns with the position:\n\n`;
+  let analysis = `Based on the job description for the ${data.roleName} role at ${data.companyName}, here's an analysis of how your experience aligns with the position:\nIndeed\n\n`;
   
   // Strong Alignment Section
   if (data.strongAlignments.length > 0) {
