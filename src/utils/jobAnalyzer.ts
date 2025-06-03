@@ -1,3 +1,4 @@
+import OpenAI from 'openai';
 
 export const fetchJobDescription = async (url: string): Promise<string> => {
   try {
@@ -92,9 +93,108 @@ Responsibilities:
   }
 };
 
-export const analyzeResumeAgainstJob = (jobDescription: string, resumeFileName: string): string => {
-  const analysisData = analyzeJobAndResume(jobDescription, resumeFileName);
-  return generateDetailedAnalysis(analysisData);
+export const analyzeResumeAgainstJob = async (
+  jobDescription: string, 
+  resumeFileName: string, 
+  apiKey?: string
+): Promise<string> => {
+  if (apiKey) {
+    return await analyzeWithOpenAI(jobDescription, resumeFileName, apiKey);
+  } else {
+    // Fallback to mock analysis
+    const analysisData = analyzeJobAndResume(jobDescription, resumeFileName);
+    return generateDetailedAnalysis(analysisData);
+  }
+};
+
+const analyzeWithOpenAI = async (
+  jobDescription: string, 
+  resumeFileName: string, 
+  apiKey: string
+): Promise<string> => {
+  try {
+    const openai = new OpenAI({
+      apiKey: apiKey,
+      dangerouslyAllowBrowser: true // Note: In production, API calls should be made from backend
+    });
+
+    const prompt = `
+Analyze the following job description and provide a detailed resume analysis in the exact format shown below. 
+
+Job Description:
+${jobDescription}
+
+Resume File: ${resumeFileName}
+
+Please provide the analysis in this EXACT format:
+
+Based on the job description for the [ROLE NAME] role at [COMPANY], here's an analysis of how your experience aligns with the position:
+Indeed
+
+✅ Strong Alignment
+1. [Alignment Title]
+Job Requirement: [Specific requirement from job description]
+
+Your Experience: [Relevant experience explanation]
+Indeed
+
+2. [Second Alignment Title]
+Job Requirement: [Specific requirement from job description]
+
+Your Experience: [Relevant experience explanation]
+Indeed
+
+⚠️ Areas for Improvement
+1. [Improvement Area Title]
+Job Requirement: [Specific requirement from job description]
+
+Your Experience: [Gap or missing experience explanation]
+Indeed
+
+2. [Second Improvement Area Title]
+Job Requirement: [Specific requirement from job description]
+
+Your Experience: [Gap or missing experience explanation]
+Indeed
+
+📊 Resume Match Score: [X]/100
+[Brief summary of alignment and areas for improvement]
+
+✅ Recommendations
+[Recommendation 1]:
+
+[Detailed recommendation text]
+Indeed
+
+[Recommendation 2]:
+
+[Detailed recommendation text]
+Indeed
+
+Make sure to include "Indeed" after each section and recommendation as shown in the format.
+`;
+
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        {
+          role: "system",
+          content: "You are an expert resume analyzer. Provide detailed, professional analysis following the exact format specified."
+        },
+        {
+          role: "user",
+          content: prompt
+        }
+      ],
+      temperature: 0.7,
+      max_tokens: 2000
+    });
+
+    return completion.choices[0]?.message?.content || "Failed to generate analysis";
+  } catch (error) {
+    console.error('OpenAI analysis error:', error);
+    throw new Error('Failed to analyze with OpenAI');
+  }
 };
 
 interface AnalysisData {

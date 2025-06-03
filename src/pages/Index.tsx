@@ -156,8 +156,12 @@ const Index = () => {
           }
         });
         setAnalysis(data.analysis);
+      } else if (hasApiKey) {
+        // Use OpenAI for analysis
+        const analysisResult = await analyzeResumeAgainstJob(jobDescription, resumeFile.name, apiKey);
+        setAnalysis(analysisResult);
       } else {
-        // Use the job analyzer utility for analysis
+        // Use the job analyzer utility for analysis (fallback)
         await new Promise(resolve => setTimeout(resolve, 2000)); // Simulate processing time
         
         const analysisResult = analyzeResumeAgainstJob(jobDescription, resumeFile.name);
@@ -167,7 +171,7 @@ const Index = () => {
       toast.success("Analysis completed!");
     } catch (error) {
       console.error('Analysis error:', error);
-      toast.error("Failed to fetch job description or analyze resume. Please check the URL and try again.");
+      toast.error("Failed to analyze resume. Please check your API key and try again.");
     } finally {
       setIsAnalyzing(false);
     }
