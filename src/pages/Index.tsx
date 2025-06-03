@@ -164,8 +164,8 @@ const Index = () => {
         // Use the job analyzer utility for analysis (fallback)
         await new Promise(resolve => setTimeout(resolve, 2000)); // Simulate processing time
         
-        const analysisResult = analyzeResumeAgainstJob(jobDescription, resumeFile.name);
-        setAnalysis(analysisResult);
+        const analysisResult = await analyzeResumeAgainstJob(jobDescription, resumeFile.name);
+        setAnalysis(await analysisResult);
       }
       
       toast.success("Analysis completed!");
