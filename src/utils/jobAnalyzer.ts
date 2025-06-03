@@ -1,4 +1,5 @@
 import OpenAI from 'openai';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
 export const fetchJobDescription = async (url: string): Promise<string> => {
   try {
@@ -96,10 +97,21 @@ Responsibilities:
 export const analyzeResumeAgainstJob = async (
   jobDescription: string, 
   resumeFileName: string, 
-  apiKey?: string
+  apiKey?: string,
+  geminiKey?: string
 ): Promise<string> => {
   if (apiKey) {
-    return await analyzeWithOpenAI(jobDescription, resumeFileName, apiKey);
+    try {
+      return await analyzeWithOpenAI(jobDescription, resumeFileName, apiKey);
+    } catch (error) {
+      console.error('OpenAI failed, trying Gemini fallback:', error);
+      if (geminiKey) {
+        return await analyzeWithGemini(jobDescription, resumeFileName, geminiKey);
+      }
+      throw error;
+    }
+  } else if (geminiKey) {
+    return await analyzeWithGemini(jobDescription, resumeFileName, geminiKey);
   } else {
     // Fallback to mock analysis
     const analysisData = analyzeJobAndResume(jobDescription, resumeFileName);
@@ -194,6 +206,82 @@ Make sure to include "Indeed" after each section and recommendation as shown in 
   } catch (error) {
     console.error('OpenAI analysis error:', error);
     throw new Error('Failed to analyze with OpenAI. Please check your API key and try again.');
+  }
+};
+
+const analyzeWithGemini = async (
+  jobDescription: string, 
+  resumeFileName: string, 
+  apiKey: string
+): Promise<string> => {
+  try {
+    const genAI = new GoogleGenerativeAI(apiKey);
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+
+    const prompt = `
+Compare the resume below with the provided job description and provide analysis in the EXACT format shown.
+
+Resume File: ${resumeFileName}
+
+Job Description:
+${jobDescription}
+
+Please provide the analysis in this EXACT format:
+
+Based on the job description for the [ROLE NAME] role at [COMPANY], here's an analysis of how your experience aligns with the position:
+Indeed
+
+✅ Strong Alignment
+1. [Alignment Title]
+Job Requirement: [Specific requirement from job description]
+
+Your Experience: [Relevant experience explanation]
+Indeed
+
+2. [Second Alignment Title]
+Job Requirement: [Specific requirement from job description]
+
+Your Experience: [Relevant experience explanation]
+Indeed
+
+⚠️ Areas for Improvement
+1. [Improvement Area Title]
+Job Requirement: [Specific requirement from job description]
+
+Your Experience: [Gap or missing experience explanation]
+Indeed
+
+2. [Second Improvement Area Title]
+Job Requirement: [Specific requirement from job description]
+
+Your Experience: [Gap or missing experience explanation]
+Indeed
+
+📊 Resume Match Score: [X]/100
+[Brief summary of alignment and areas for improvement]
+
+✅ Recommendations
+[Recommendation 1]:
+
+[Detailed recommendation text]
+Indeed
+
+[Recommendation 2]:
+
+[Detailed recommendation text]
+Indeed
+
+Make sure to include "Indeed" after each section and recommendation as shown in the format.
+`;
+
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    const text = response.text();
+
+    return text || "Failed to generate analysis with Gemini";
+  } catch (error) {
+    console.error('Gemini analysis error:', error);
+    throw new Error('Failed to analyze with Gemini. Please check your API key and try again.');
   }
 };
 

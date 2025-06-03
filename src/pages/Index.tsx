@@ -19,6 +19,7 @@ const supabase = supabaseUrl && supabaseAnonKey
 
 const Index = () => {
   const [apiKey, setApiKey] = useState("");
+  const [geminiKey, setGeminiKey] = useState("");
   const [jobUrl, setJobUrl] = useState("");
   const [resumeFile, setResumeFile] = useState<File | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -118,12 +119,13 @@ const Index = () => {
   };
 
   const analyzeResume = async () => {
-    // Check if user has subscription or API key
+    // Check if user has subscription or API keys
     const hasSubscription = subscription?.subscribed;
     const hasApiKey = apiKey.trim();
+    const hasGeminiKey = geminiKey.trim();
 
-    if (!hasSubscription && !hasApiKey) {
-      toast.error("Please subscribe or enter your OpenAI API key");
+    if (!hasSubscription && !hasApiKey && !hasGeminiKey) {
+      toast.error("Please subscribe or enter your OpenAI/Gemini API key");
       setShowPlans(true);
       return;
     }
@@ -156,22 +158,25 @@ const Index = () => {
           }
         });
         setAnalysis(data.analysis);
-      } else if (hasApiKey) {
-        // Use OpenAI for analysis
-        const analysisResult = await analyzeResumeAgainstJob(jobDescription, resumeFile.name, apiKey);
-        setAnalysis(analysisResult);
       } else {
-        // Use the job analyzer utility for analysis (fallback)
-        await new Promise(resolve => setTimeout(resolve, 2000)); // Simulate processing time
-        
-        const analysisResult = await analyzeResumeAgainstJob(jobDescription, resumeFile.name);
+        // Use OpenAI or Gemini for analysis
+        const analysisResult = await analyzeResumeAgainstJob(
+          jobDescription, 
+          resumeFile.name, 
+          hasApiKey ? apiKey : undefined,
+          hasGeminiKey ? geminiKey : undefined
+        );
         setAnalysis(analysisResult);
       }
       
       toast.success("Analysis completed!");
     } catch (error) {
       console.error('Analysis error:', error);
-      toast.error("Failed to analyze resume. Please check your API key and try again.");
+      if (error instanceof Error) {
+        toast.error(error.message);
+      } else {
+        toast.error("Failed to analyze resume. Please check your API keys and try again.");
+      }
     } finally {
       setIsAnalyzing(false);
     }
@@ -298,30 +303,48 @@ const Index = () => {
         <div className="grid lg:grid-cols-2 gap-8 max-w-6xl mx-auto">
           {/* Input Section */}
           <div className="space-y-6">
-            {/* API Key - Only show if not subscribed */}
+            {/* API Keys - Only show if not subscribed */}
             {!subscription?.subscribed && (
               <Card className="border-0 shadow-lg">
                 <CardHeader className="bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-t-lg">
                   <CardTitle className="flex items-center">
                     <Award className="h-5 w-5 mr-2" />
-                    OpenAI Configuration
+                    AI Configuration
                   </CardTitle>
                   <CardDescription className="text-blue-100">
-                    Enter your OpenAI API key or subscribe for unlimited access
+                    Enter your OpenAI or Gemini API key, or subscribe for unlimited access
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="p-6">
-                  <Label htmlFor="apiKey" className="text-sm font-medium text-gray-700">
-                    API Key (Required without subscription)
-                  </Label>
-                  <Input
-                    id="apiKey"
-                    type="password"
-                    placeholder="sk-..."
-                    value={apiKey}
-                    onChange={(e) => setApiKey(e.target.value)}
-                    className="mt-2"
-                  />
+                <CardContent className="p-6 space-y-4">
+                  <div>
+                    <Label htmlFor="apiKey" className="text-sm font-medium text-gray-700">
+                      OpenAI API Key (Primary)
+                    </Label>
+                    <Input
+                      id="apiKey"
+                      type="password"
+                      placeholder="sk-..."
+                      value={apiKey}
+                      onChange={(e) => setApiKey(e.target.value)}
+                      className="mt-2"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="geminiKey" className="text-sm font-medium text-gray-700">
+                      Gemini API Key (Fallback)
+                    </Label>
+                    <Input
+                      id="geminiKey"
+                      type="password"
+                      placeholder="AIza..."
+                      value={geminiKey}
+                      onChange={(e) => setGeminiKey(e.target.value)}
+                      className="mt-2"
+                    />
+                  </div>
+                  <p className="text-xs text-gray-500">
+                    If OpenAI fails, Gemini will be used as fallback automatically
+                  </p>
                 </CardContent>
               </Card>
             )}
